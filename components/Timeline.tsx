@@ -9,7 +9,7 @@ type Unit = 'ML' | 'OZ'
 interface Entry {
   id: string
   type: EntryType
-  occurredAt: Date | string
+  occurredAt: string
   amount: number | null
   unit: Unit | null
   notes: string | null
