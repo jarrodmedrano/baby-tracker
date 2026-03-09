@@ -7,12 +7,7 @@ import type { Baby } from '@prisma/client'
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) {
-    const { cookies } = await import('next/headers')
-    const cookieStore = await cookies()
-    cookieStore.delete('better-auth.session_token')
-    redirect('/login')
-  }
+  if (!session) redirect('/login')
 
   const babies = await prisma.baby.findMany({
     where: { users: { some: { userId: session.user.id } } },
