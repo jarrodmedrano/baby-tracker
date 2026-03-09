@@ -15,6 +15,9 @@
     "@jarrodmedrano/claude-skills": "^v1.0.15",
     "@prisma/client": "^7.4.2",
     "better-auth": "^1.5.4",
+    "next": "^16.1.6",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
