@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+
+  babies       BabyUser[]
+  sharedAccess SharedAccess[]
+
+  // better-auth requires these
+  emailVerified Boolean  @default(false)
+  image         String?
+  updatedAt     DateTime @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Baby {
+  id        String    @id @default(cuid())
+  name      String
+  birthDate DateTime?
+  createdAt DateTime  @default(now())
+
+  users   BabyUser[]
+  entries Entry[]
+  shares  SharedAccess[]
+}
+
+model BabyUser {
+  userId String
+  babyId String
+  role   Role @default(OWNER)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  baby Baby @relation(fields: [babyId], references: [id], onDelete: Cascade)
+
+  @@id([userId, babyId])
+}
+
+model Entry {
+  id         String    @id @default(cuid())
+  babyId     String
+  type       EntryType
+  occurredAt DateTime  @default(now())
+  notes      String?
+  amount     Float?
+  unit       Unit?
+
+  baby Baby @relation(fields: [babyId], references: [id], onDelete: Cascade)
+}
+
+model SharedAccess {
+  id        String    @id @default(cuid())
+  babyId    String
+  userId    String?
+  token     String    @unique @default(cuid())
+  role      Role      @default(VIEWER)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  baby Baby  @relation(fields: [babyId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+enum EntryType {
+  FEEDING
+  CHANGING
+  NAP
+  SLEEP
+  MEDICINE
+}
+
+enum Unit {
+  ML
+  OZ
+}
+
+enum Role {
+  OWNER
+  EDITOR
+  VIEWER
+}
