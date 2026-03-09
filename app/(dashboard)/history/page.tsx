@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { Timeline } from '@/components/Timeline'
 
 interface Baby {
@@ -44,17 +45,17 @@ export default function HistoryPage() {
   useEffect(() => { fetchEntries() }, [fetchEntries])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 sticky top-0">
-        <Link href="/" className="text-gray-500 hover:text-gray-700 text-sm">← Back</Link>
-        <h1 className="text-lg font-bold text-gray-900">History</h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-3 sticky top-0">
+        <Link href="/" className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white"><ArrowLeft className="w-4 h-4" /></Link>
+        <h1 className="text-lg font-bold text-gray-900 dark:text-white">History</h1>
       </header>
 
-      <div className="bg-white border-b border-gray-100 px-4 py-3 flex flex-wrap gap-3 items-center">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex flex-wrap gap-3 items-center">
         <select
           value={selectedBabyId}
           onChange={(e) => setSelectedBabyId(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+          className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700"
         >
           {babies.map((b) => (
             <option key={b.id} value={b.id}>{b.name}</option>
@@ -64,7 +65,7 @@ export default function HistoryPage() {
           type="date"
           value={selectedDate}
           onChange={(e) => setSelectedDate(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+          className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700"
         />
       </div>
 

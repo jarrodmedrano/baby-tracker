@@ -16,6 +16,17 @@ const LinkSchema = z.object({
 
 const PostSchema = z.discriminatedUnion('type', [InviteSchema, LinkSchema])
 
+function checkOrigin(request: NextRequest): NextResponse | null {
+  const origin = request.headers.get('origin')
+  if (origin) {
+    const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    if (origin !== allowedOrigin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  }
+  return null
+}
+
 async function verifyOwner(userId: string, babyId: string) {
   return prisma.babyUser.findFirst({
     where: { userId, babyId, role: 'OWNER' },
@@ -23,6 +34,9 @@ async function verifyOwner(userId: string, babyId: string) {
 }
 
 export async function POST(request: NextRequest) {
+  const originError = checkOrigin(request)
+  if (originError) return originError
+
   const session = await auth.api.getSession({ headers: request.headers })
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -38,8 +52,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (validated.type === 'link') {
+      const token = crypto.randomUUID()
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       const share = await prisma.sharedAccess.create({
-        data: { babyId: validated.babyId, role: 'VIEWER' },
+        data: { babyId: validated.babyId, role: 'VIEWER', token, expiresAt },
       })
       const url = `${process.env.NEXT_PUBLIC_APP_URL}/shared/${share.token}`
       return NextResponse.json({ token: share.token, url }, { status: 201 })
@@ -48,7 +64,7 @@ export async function POST(request: NextRequest) {
     // type === 'invite'
     const invitee = await prisma.user.findUnique({ where: { email: validated.email } })
     if (!invitee) {
-      return NextResponse.json({ error: 'User not found. They must register first.' }, { status: 404 })
+      return NextResponse.json({ message: 'If that email is registered, they now have access.' }, { status: 200 })
     }
 
     // Add to BabyUser
@@ -70,7 +86,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(share, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 })
+      return NextResponse.json({ error: 'Validation failed' }, { status: 400 })
     }
     console.error('Error sharing:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json({ error: 'Failed to share' }, { status: 500 })
@@ -89,7 +105,7 @@ export async function GET(request: NextRequest) {
   }
 
   const access = await prisma.babyUser.findFirst({
-    where: { userId: session.user.id, babyId },
+    where: { userId: session.user.id, babyId, role: 'OWNER' },
   })
   if (!access) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -104,6 +120,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const originError = checkOrigin(request)
+  if (originError) return originError
+
   const session = await auth.api.getSession({ headers: request.headers })
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

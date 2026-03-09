@@ -2,7 +2,18 @@
   "permissions": {
     "allow": [
       "Bash(pnpm init)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(npm install:*)",
+      "Bash(git:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx jest:*)",
+      "Bash(npx tsc:*)",
+      "Bash(wait:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(pnpm prisma:*)",
+      "Bash(pnpm add:*)"
     ]
   }
 }

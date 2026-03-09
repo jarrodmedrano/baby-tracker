@@ -8,6 +8,17 @@ const CreateBabySchema = z.object({
   birthDate: z.string().optional().nullable(),
 })
 
+function checkOrigin(request: NextRequest): NextResponse | null {
+  const origin = request.headers.get('origin')
+  if (origin) {
+    const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    if (origin !== allowedOrigin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  }
+  return null
+}
+
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({ headers: request.headers })
   if (!session) {
@@ -25,6 +36,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const originError = checkOrigin(request)
+  if (originError) return originError
+
   const session = await auth.api.getSession({ headers: request.headers })
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -34,25 +48,29 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validated = CreateBabySchema.parse(body)
 
-    const baby = await prisma.baby.create({
-      data: {
-        name: validated.name,
-        birthDate: validated.birthDate ? new Date(validated.birthDate) : null,
-      },
-    })
+    const baby = await prisma.$transaction(async (tx) => {
+      const created = await tx.baby.create({
+        data: {
+          name: validated.name,
+          birthDate: validated.birthDate ? new Date(validated.birthDate) : null,
+        },
+      })
 
-    await prisma.babyUser.create({
-      data: {
-        userId: session.user.id,
-        babyId: baby.id,
-        role: 'OWNER',
-      },
+      await tx.babyUser.create({
+        data: {
+          userId: session.user.id,
+          babyId: created.id,
+          role: 'OWNER',
+        },
+      })
+
+      return created
     })
 
     return NextResponse.json(baby, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 })
+      return NextResponse.json({ error: 'Validation failed' }, { status: 400 })
     }
     console.error('Error creating baby:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json({ error: 'Failed to create baby' }, { status: 500 })

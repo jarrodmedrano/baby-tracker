@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 
 interface Baby {
   id: string
@@ -49,16 +50,16 @@ export default function BabiesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 sticky top-0">
-        <Link href="/" className="text-gray-500 hover:text-gray-700 text-sm">← Back</Link>
-        <h1 className="text-lg font-bold text-gray-900">Babies</h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-3 sticky top-0">
+        <Link href="/" className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white"><ArrowLeft className="w-4 h-4" /></Link>
+        <h1 className="text-lg font-bold text-gray-900 dark:text-white">Babies</h1>
       </header>
 
       <div className="max-w-lg mx-auto p-4 space-y-6">
         {/* Add baby form */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Add Baby</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Add Baby</h2>
           <form onSubmit={handleAdd} className="space-y-3">
             <input
               type="text"
@@ -66,13 +67,13 @@ export default function BabiesPage() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Baby's name"
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
             />
             <input
               type="date"
               value={birthDate}
               onChange={(e) => setBirthDate(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-600"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700"
             />
             {error && <p className="text-red-500 text-sm">{error}</p>}
             <button
@@ -87,13 +88,13 @@ export default function BabiesPage() {
 
         {/* Baby list */}
         {babies.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm divide-y divide-gray-100 dark:divide-gray-700">
             {babies.map((baby) => (
               <div key={baby.id} className="p-4 flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-gray-900">{baby.name}</p>
+                  <p className="font-medium text-gray-900 dark:text-white">{baby.name}</p>
                   {baby.birthDate && (
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       Born {new Date(baby.birthDate).toLocaleDateString()}
                     </p>
                   )}

@@ -12,6 +12,19 @@ const CreateEntrySchema = z.object({
   unit: z.enum(['ML', 'OZ']).optional().nullable(),
 })
 
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
+
+function checkOrigin(request: NextRequest): NextResponse | null {
+  const origin = request.headers.get('origin')
+  if (origin) {
+    const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    if (origin !== allowedOrigin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  }
+  return null
+}
+
 async function verifyBabyAccess(userId: string, babyId: string) {
   return prisma.babyUser.findFirst({ where: { userId, babyId } })
 }
@@ -28,6 +41,10 @@ export async function GET(request: NextRequest) {
 
   if (!babyId) {
     return NextResponse.json({ error: 'babyId required' }, { status: 400 })
+  }
+
+  if (date && !DATE_REGEX.test(date)) {
+    return NextResponse.json({ error: 'Invalid date format. Expected YYYY-MM-DD.' }, { status: 400 })
   }
 
   const access = await verifyBabyAccess(session.user.id, babyId)
@@ -51,7 +68,39 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(entries)
 }
 
+export async function DELETE(request: NextRequest) {
+  const originError = checkOrigin(request)
+  if (originError) return originError
+
+  const session = await auth.api.getSession({ headers: request.headers })
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const entryId = searchParams.get('id')
+  if (!entryId) {
+    return NextResponse.json({ error: 'id required' }, { status: 400 })
+  }
+
+  const entry = await prisma.entry.findUnique({ where: { id: entryId } })
+  if (!entry) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  const access = await verifyBabyAccess(session.user.id, entry.babyId)
+  if (!access || access.role === 'VIEWER') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  await prisma.entry.delete({ where: { id: entryId } })
+  return new NextResponse(null, { status: 204 })
+}
+
 export async function POST(request: NextRequest) {
+  const originError = checkOrigin(request)
+  if (originError) return originError
+
   const session = await auth.api.getSession({ headers: request.headers })
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -80,7 +129,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(entry, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 })
+      return NextResponse.json({ error: 'Validation failed' }, { status: 400 })
     }
     console.error('Error creating entry:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json({ error: 'Failed to create entry' }, { status: 500 })
