@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Milk, ShoppingBag, Moon, BedDouble, Pill, Plus } from 'lucide-react'
 
 type EntryType = 'FEEDING' | 'CHANGING' | 'NAP' | 'SLEEP' | 'MEDICINE'
@@ -78,7 +78,8 @@ function formatEntryPill(entry: Entry): string {
 }
 
 export function Timeline({ entries, onAddEntry, onEntryClick }: TimelineProps) {
-  const currentHour = new Date().getHours()
+  const [currentHour, setCurrentHour] = useState(-1)
+  useEffect(() => { setCurrentHour(new Date().getHours()) }, [])
 
   const { instantByHour, spanningEntries } = useMemo(() => {
     const instantByHour: Record<number, Entry[]> = {}
