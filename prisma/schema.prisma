@@ -7,20 +7,17 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-
-  babies       BabyUser[]
-  sharedAccess SharedAccess[]
-
-  // better-auth requires these
-  emailVerified Boolean  @default(false)
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  createdAt     DateTime       @default(now())
+  emailVerified Boolean        @default(false)
   image         String?
-  updatedAt     DateTime @updatedAt
-  sessions      Session[]
+  updatedAt     DateTime       @updatedAt
   accounts      Account[]
+  babies        BabyUser[]
+  sessions      Session[]
+  sharedAccess  SharedAccess[]
 }
 
 model Session {
@@ -32,8 +29,7 @@ model Session {
   userAgent String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Account {
@@ -50,8 +46,7 @@ model Account {
   password              String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Verification {
@@ -64,23 +59,21 @@ model Verification {
 }
 
 model Baby {
-  id        String    @id @default(cuid())
+  id        String         @id @default(cuid())
   name      String
   birthDate DateTime?
-  createdAt DateTime  @default(now())
-
-  users   BabyUser[]
-  entries Entry[]
-  shares  SharedAccess[]
+  createdAt DateTime       @default(now())
+  users     BabyUser[]
+  entries   Entry[]
+  shares    SharedAccess[]
 }
 
 model BabyUser {
   userId String
   babyId String
-  role   Role @default(OWNER)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  baby Baby @relation(fields: [babyId], references: [id], onDelete: Cascade)
+  role   Role   @default(OWNER)
+  baby   Baby   @relation(fields: [babyId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, babyId])
 }
@@ -94,8 +87,7 @@ model Entry {
   amount          Float?
   unit            Unit?
   durationMinutes Int?
-
-  baby Baby @relation(fields: [babyId], references: [id], onDelete: Cascade)
+  baby            Baby      @relation(fields: [babyId], references: [id], onDelete: Cascade)
 }
 
 model SharedAccess {
@@ -106,9 +98,8 @@ model SharedAccess {
   role      Role      @default(VIEWER)
   expiresAt DateTime?
   createdAt DateTime  @default(now())
-
-  baby Baby  @relation(fields: [babyId], references: [id], onDelete: Cascade)
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  baby      Baby      @relation(fields: [babyId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id])
 }
 
 enum EntryType {
