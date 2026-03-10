@@ -86,13 +86,14 @@ model BabyUser {
 }
 
 model Entry {
-  id         String    @id @default(cuid())
-  babyId     String
-  type       EntryType
-  occurredAt DateTime  @default(now())
-  notes      String?
-  amount     Float?
-  unit       Unit?
+  id              String    @id @default(cuid())
+  babyId          String
+  type            EntryType
+  occurredAt      DateTime  @default(now())
+  notes           String?
+  amount          Float?
+  unit            Unit?
+  durationMinutes Int?
 
   baby Baby @relation(fields: [babyId], references: [id], onDelete: Cascade)
 }

@@ -13,6 +13,7 @@ interface Entry {
   amount: number | null
   unit: Unit | null
   notes: string | null
+  durationMinutes: number | null
 }
 
 interface TimelineProps {
@@ -45,11 +46,27 @@ const ENTRY_COLORS: Record<EntryType, string> = {
   MEDICINE: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
 }
 
+const SPAN_BLOCK_COLORS: Record<EntryType, string> = {
+  FEEDING: '',
+  CHANGING: '',
+  NAP: 'bg-purple-200 dark:bg-purple-900/60 border-purple-400 dark:border-purple-600 text-purple-900 dark:text-purple-200',
+  SLEEP: 'bg-indigo-200 dark:bg-indigo-900/60 border-indigo-400 dark:border-indigo-600 text-indigo-900 dark:text-indigo-200',
+  MEDICINE: '',
+}
+
 function formatHour(hour: number): string {
   if (hour === 0) return '12 AM'
   if (hour < 12) return `${hour} AM`
   if (hour === 12) return '12 PM'
   return `${hour - 12} PM`
+}
+
+function formatDuration(minutes: number): string {
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (h === 0) return `${m}m`
+  if (m === 0) return `${h}h`
+  return `${h}h ${m}m`
 }
 
 function formatEntryPill(entry: Entry): string {
@@ -63,31 +80,52 @@ function formatEntryPill(entry: Entry): string {
 export function Timeline({ entries, onAddEntry, onEntryClick }: TimelineProps) {
   const currentHour = new Date().getHours()
 
-  const entriesByHour = useMemo(() => {
-    const map: Record<number, Entry[]> = {}
+  const { instantByHour, spanningEntries } = useMemo(() => {
+    const instantByHour: Record<number, Entry[]> = {}
+    const spanningEntries: Entry[] = []
+
     entries.forEach((entry) => {
       const hour = new Date(entry.occurredAt).getHours()
-      if (!map[hour]) map[hour] = []
-      map[hour].push(entry)
+      const isSpanning =
+        (entry.type === 'NAP' || entry.type === 'SLEEP') &&
+        entry.durationMinutes != null &&
+        entry.durationMinutes > 0
+
+      if (isSpanning) {
+        spanningEntries.push(entry)
+      } else {
+        if (!instantByHour[hour]) instantByHour[hour] = []
+        instantByHour[hour].push(entry)
+      }
     })
-    return map
+
+    return { instantByHour, spanningEntries }
   }, [entries])
 
   return (
-    <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
+    <div
+      className="relative"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '48px 1fr 56px',
+        gridTemplateRows: 'repeat(24, minmax(40px, auto))',
+      }}
+    >
+      {/* Hour rows */}
       {Array.from({ length: 24 }, (_, hour) => (
         <button
           key={hour}
           onClick={() => onAddEntry(hour)}
-          className={`w-full flex items-start gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-left transition-colors group ${
+          style={{ gridRow: hour + 1, gridColumn: '1 / 3' }}
+          className={`flex items-start gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-left transition-colors group border-b border-gray-100 dark:border-gray-700/50 ${
             hour === currentHour ? 'bg-blue-50 dark:bg-blue-900/20' : ''
           }`}
         >
-          <span className="text-xs text-gray-400 dark:text-gray-500 w-12 pt-1 flex-shrink-0">
+          <span className="text-xs text-gray-400 dark:text-gray-500 w-[30px] pt-1 flex-shrink-0">
             {formatHour(hour)}
           </span>
           <div className="flex flex-wrap gap-1 min-h-[24px] flex-1">
-            {(entriesByHour[hour] ?? []).map((entry) => (
+            {(instantByHour[hour] ?? []).map((entry) => (
               <span
                 key={entry.id}
                 onClick={onEntryClick ? (e) => { e.stopPropagation(); onEntryClick(entry) } : undefined}
@@ -100,6 +138,39 @@ export function Timeline({ entries, onAddEntry, onEntryClick }: TimelineProps) {
           </div>
           <Plus className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 group-hover:text-gray-400 dark:group-hover:text-gray-500 flex-shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
+      ))}
+
+      {/* Spanning NAP/SLEEP blocks */}
+      {spanningEntries.map((entry) => {
+        const startHour = new Date(entry.occurredAt).getHours()
+        const rowSpan = Math.max(1, Math.ceil(entry.durationMinutes! / 60))
+        const endRow = Math.min(startHour + rowSpan, 24)
+        const actualSpan = endRow - startHour
+
+        return (
+          <button
+            key={entry.id}
+            onClick={onEntryClick ? (e) => { e.stopPropagation(); onEntryClick(entry) } : undefined}
+            style={{
+              gridRow: `${startHour + 1} / ${startHour + 1 + actualSpan}`,
+              gridColumn: 3,
+            }}
+            className={`flex flex-col items-center justify-center gap-0.5 mx-1 my-0.5 rounded-lg border text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${SPAN_BLOCK_COLORS[entry.type]}`}
+          >
+            {ENTRY_ICONS[entry.type]}
+            <span className="leading-tight text-center px-0.5">{ENTRY_LABELS[entry.type]}</span>
+            <span className="leading-tight opacity-75">{formatDuration(entry.durationMinutes!)}</span>
+          </button>
+        )
+      })}
+
+      {/* Empty column 3 spacer rows to keep grid height consistent */}
+      {Array.from({ length: 24 }, (_, hour) => (
+        <div
+          key={`spacer-${hour}`}
+          style={{ gridRow: hour + 1, gridColumn: 3 }}
+          className="border-b border-gray-100 dark:border-gray-700/50"
+        />
       ))}
     </div>
   )

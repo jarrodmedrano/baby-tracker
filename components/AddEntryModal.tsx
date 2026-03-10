@@ -23,6 +23,7 @@ interface AddEntryModalProps {
     amount?: number | null
     unit?: Unit | null
     notes?: string | null
+    durationMinutes?: number | null
   }) => Promise<void>
 }
 
@@ -39,6 +40,8 @@ export function AddEntryModal({ babyId, defaultHour, otherBabies = [], onClose, 
   const [amount, setAmount] = useState('')
   const [unit, setUnit] = useState<Unit>('ML')
   const [notes, setNotes] = useState('')
+  const [durationHours, setDurationHours] = useState(0)
+  const [durationMins, setDurationMins] = useState(30)
   const [duplicateFor, setDuplicateFor] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -53,12 +56,15 @@ export function AddEntryModal({ babyId, defaultHour, otherBabies = [], onClose, 
     if (!selectedType) return
     setLoading(true)
     setError('')
+    const isDuration = selectedType === 'NAP' || selectedType === 'SLEEP'
+    const totalDuration = durationHours * 60 + durationMins
     const entryBase = {
       type: selectedType,
       occurredAt: new Date(occurredAt).toISOString(),
       amount: selectedType === 'FEEDING' && amount ? parseFloat(amount) : null,
       unit: selectedType === 'FEEDING' ? unit : null,
       notes: notes || null,
+      durationMinutes: isDuration && totalDuration > 0 ? totalDuration : null,
     }
     try {
       await Promise.all([
@@ -153,6 +159,34 @@ export function AddEntryModal({ babyId, defaultHour, otherBabies = [], onClose, 
             className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700"
           />
         </div>
+
+        {(selectedType === 'NAP' || selectedType === 'SLEEP') && (
+          <div className="flex gap-2 mb-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Duration</label>
+              <div className="flex items-center gap-2">
+                <select
+                  value={durationHours}
+                  onChange={(e) => setDurationHours(Number(e.target.value))}
+                  className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                >
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <option key={i} value={i}>{i}h</option>
+                  ))}
+                </select>
+                <select
+                  value={durationMins}
+                  onChange={(e) => setDurationMins(Number(e.target.value))}
+                  className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                >
+                  {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
+                    <option key={m} value={m}>{m}m</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mb-4">
           <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

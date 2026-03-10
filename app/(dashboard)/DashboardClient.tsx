@@ -23,6 +23,7 @@ interface Entry {
   amount: number | null
   unit: 'ML' | 'OZ' | null
   notes: string | null
+  durationMinutes: number | null
 }
 
 const ENTRY_LABELS: Record<Entry['type'], string> = {
@@ -75,6 +76,7 @@ export function DashboardClient({ babies }: DashboardClientProps) {
     amount?: number | null
     unit?: 'ML' | 'OZ' | null
     notes?: string | null
+    durationMinutes?: number | null
   }) => {
     const res = await fetch('/api/entries', {
       method: 'POST',
@@ -224,6 +226,7 @@ export function DashboardClient({ babies }: DashboardClientProps) {
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
               {new Date(selectedEntry.occurredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {selectedEntry.durationMinutes != null && ` · ${Math.floor(selectedEntry.durationMinutes / 60)}h ${selectedEntry.durationMinutes % 60}m`}
               {selectedEntry.amount != null && ` · ${selectedEntry.amount} ${selectedEntry.unit}`}
               {selectedEntry.notes && ` · ${selectedEntry.notes}`}
             </p>

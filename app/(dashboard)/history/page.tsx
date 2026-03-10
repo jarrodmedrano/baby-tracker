@@ -17,6 +17,7 @@ interface Entry {
   amount: number | null
   unit: 'ML' | 'OZ' | null
   notes: string | null
+  durationMinutes: number | null
 }
 
 export default function HistoryPage() {

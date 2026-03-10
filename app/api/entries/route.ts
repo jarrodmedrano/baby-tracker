@@ -10,6 +10,7 @@ const CreateEntrySchema = z.object({
   notes: z.string().max(500).optional().nullable(),
   amount: z.number().positive().optional().nullable(),
   unit: z.enum(['ML', 'OZ']).optional().nullable(),
+  durationMinutes: z.number().int().min(1).max(1440).optional().nullable(),
 })
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
@@ -125,6 +126,7 @@ export async function POST(request: NextRequest) {
         notes: validated.notes ?? null,
         amount: validated.amount ?? null,
         unit: validated.unit ?? null,
+        durationMinutes: validated.durationMinutes ?? null,
       },
     })
 
