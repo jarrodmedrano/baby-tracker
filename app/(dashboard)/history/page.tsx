@@ -22,9 +22,10 @@ interface Entry {
 export default function HistoryPage() {
   const [babies, setBabies] = useState<Baby[]>([])
   const [selectedBabyId, setSelectedBabyId] = useState<string>('')
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  )
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  })
   const [entries, setEntries] = useState<Entry[]>([])
 
   useEffect(() => {
@@ -38,7 +39,8 @@ export default function HistoryPage() {
 
   const fetchEntries = useCallback(async () => {
     if (!selectedBabyId) return
-    const res = await fetch(`/api/entries?babyId=${selectedBabyId}&date=${selectedDate}`)
+    const tz = new Date().getTimezoneOffset()
+    const res = await fetch(`/api/entries?babyId=${selectedBabyId}&date=${selectedDate}&tz=${tz}`)
     if (res.ok) setEntries(await res.json())
   }, [selectedBabyId, selectedDate])
 

@@ -52,10 +52,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const startOfDay = date ? new Date(`${date}T00:00:00.000Z`) : new Date()
-  startOfDay.setUTCHours(0, 0, 0, 0)
-  const endOfDay = new Date(startOfDay)
-  endOfDay.setUTCHours(23, 59, 59, 999)
+  // tz is the client's getTimezoneOffset() value (minutes to add to local time to get UTC)
+  const tzOffset = parseInt(searchParams.get('tz') ?? '0')
+  const dateStr = date ?? new Date().toISOString().split('T')[0]
+  // Compute local midnight in UTC by shifting UTC midnight by the timezone offset
+  const startOfDay = new Date(new Date(`${dateStr}T00:00:00.000Z`).getTime() + tzOffset * 60000)
+  const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1)
 
   const entries = await prisma.entry.findMany({
     where: {

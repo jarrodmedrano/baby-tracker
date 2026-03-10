@@ -47,10 +47,12 @@ export function DashboardClient({ babies }: DashboardClientProps) {
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  const today = new Date().toISOString().split('T')[0]
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 
   const fetchEntries = useCallback(async (babyId: string) => {
-    const res = await fetch(`/api/entries?babyId=${babyId}&date=${today}`)
+    const tz = new Date().getTimezoneOffset()
+    const res = await fetch(`/api/entries?babyId=${babyId}&date=${today}&tz=${tz}`)
     if (res.ok) {
       const data = await res.json()
       setEntriesByBaby((prev) => ({ ...prev, [babyId]: data }))
