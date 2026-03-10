@@ -192,7 +192,7 @@ export function DashboardClient({ babies }: DashboardClientProps) {
           {activeBabies.map((baby) => (
             <div key={baby.id} className={isAllView ? 'flex-1 min-w-0' : ''}>
               {isAllView && (
-                <div className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-200 sticky top-[57px]">
+                <div className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-200 sticky top-[53px]">
                   {baby.name}
                 </div>
               )}
