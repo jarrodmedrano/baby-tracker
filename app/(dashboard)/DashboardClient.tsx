@@ -7,7 +7,7 @@ import { signOut } from '@/lib/auth-client'
 import { Timeline } from '@/components/Timeline'
 import { AddEntryModal } from '@/components/AddEntryModal'
 import { useTheme } from '@/components/ThemeProvider'
-import { Moon, Sun, LogOut, History, Baby, Trash2 } from 'lucide-react'
+import { Moon, Sun, LogOut, History, Baby, Trash2, Pencil } from 'lucide-react'
 
 interface Baby {
   id: string
@@ -47,6 +47,7 @@ export function DashboardClient({ babies }: DashboardClientProps) {
   const [modalHour, setModalHour] = useState<number | null>(null)
   const [modalBabyId, setModalBabyId] = useState<string | null>(null)
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null)
+  const [editingEntry, setEditingEntry] = useState<Entry | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   const now = new Date()
@@ -87,6 +88,31 @@ export function DashboardClient({ babies }: DashboardClientProps) {
     })
     if (!res.ok) throw new Error('Failed to save')
     await fetchEntries(entry.babyId)
+  }
+
+  const handleUpdateEntry = async (id: string, entry: {
+    type: 'FEEDING' | 'CHANGING' | 'NAP' | 'SLEEP' | 'MEDICINE'
+    occurredAt: string
+    amount?: number | null
+    unit?: 'ML' | 'OZ' | null
+    notes?: string | null
+    durationMinutes?: number | null
+    diaperType?: 'WET' | 'DIRTY' | 'BOTH' | null
+  }) => {
+    const res = await fetch(`/api/entries?id=${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry),
+    })
+    if (!res.ok) throw new Error('Failed to update')
+    // Find which baby this entry belongs to and refresh
+    for (const baby of babies) {
+      const babyEntries = entriesByBaby[baby.id] ?? []
+      if (babyEntries.some((e) => e.id === id)) {
+        await fetchEntries(baby.id)
+        break
+      }
+    }
   }
 
   const handleDeleteEntry = async () => {
@@ -232,14 +258,23 @@ export function DashboardClient({ babies }: DashboardClientProps) {
               {selectedEntry.amount != null && ` · ${selectedEntry.amount} ${selectedEntry.unit}`}
               {selectedEntry.notes && ` · ${selectedEntry.notes}`}
             </p>
-            <button
-              onClick={handleDeleteEntry}
-              disabled={deleting}
-              className="w-full flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 py-3 rounded-xl font-medium hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              {deleting ? 'Deleting…' : 'Delete entry'}
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setEditingEntry(selectedEntry); setSelectedEntry(null) }}
+                className="flex-1 flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                <Pencil className="w-4 h-4" />
+                Edit
+              </button>
+              <button
+                onClick={handleDeleteEntry}
+                disabled={deleting}
+                className="flex-1 flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 py-3 rounded-xl font-medium hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -254,6 +289,21 @@ export function DashboardClient({ babies }: DashboardClientProps) {
           onSave={handleSaveEntry}
         />
       )}
+
+      {/* Edit Entry Modal */}
+      {editingEntry && (() => {
+        const entryBabyId = babies.find((b) => (entriesByBaby[b.id] ?? []).some((e) => e.id === editingEntry.id))?.id ?? ''
+        return (
+          <AddEntryModal
+            babyId={entryBabyId}
+            defaultHour={new Date(editingEntry.occurredAt).getHours()}
+            editEntry={{ ...editingEntry, babyId: entryBabyId }}
+            onClose={() => setEditingEntry(null)}
+            onSave={handleSaveEntry}
+            onUpdate={handleUpdateEntry}
+          />
+        )
+      })()}
     </div>
   )
 }

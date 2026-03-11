@@ -101,6 +101,68 @@ export async function DELETE(request: NextRequest) {
   return new NextResponse(null, { status: 204 })
 }
 
+const UpdateEntrySchema = z.object({
+  type: z.enum(['FEEDING', 'CHANGING', 'NAP', 'SLEEP', 'MEDICINE']),
+  occurredAt: z.string().optional(),
+  notes: z.string().max(500).optional().nullable(),
+  amount: z.number().positive().optional().nullable(),
+  unit: z.enum(['ML', 'OZ']).optional().nullable(),
+  durationMinutes: z.number().int().min(1).max(1440).optional().nullable(),
+  diaperType: z.enum(['WET', 'DIRTY', 'BOTH']).optional().nullable(),
+})
+
+export async function PATCH(request: NextRequest) {
+  const originError = checkOrigin(request)
+  if (originError) return originError
+
+  const session = await auth.api.getSession({ headers: request.headers })
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const entryId = searchParams.get('id')
+  if (!entryId) {
+    return NextResponse.json({ error: 'id required' }, { status: 400 })
+  }
+
+  const existing = await prisma.entry.findUnique({ where: { id: entryId } })
+  if (!existing) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  const access = await verifyBabyAccess(session.user.id, existing.babyId)
+  if (!access || access.role === 'VIEWER') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  try {
+    const body = await request.json()
+    const validated = UpdateEntrySchema.parse(body)
+
+    const entry = await prisma.entry.update({
+      where: { id: entryId },
+      data: {
+        type: validated.type,
+        occurredAt: validated.occurredAt ? new Date(validated.occurredAt) : existing.occurredAt,
+        notes: validated.notes ?? null,
+        amount: validated.amount ?? null,
+        unit: validated.unit ?? null,
+        durationMinutes: validated.durationMinutes ?? null,
+        diaperType: validated.diaperType ?? null,
+      },
+    })
+
+    return NextResponse.json(entry)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Validation failed' }, { status: 400 })
+    }
+    console.error('Error updating entry:', error instanceof Error ? error.message : 'Unknown error')
+    return NextResponse.json({ error: 'Failed to update entry' }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest) {
   const originError = checkOrigin(request)
   if (originError) return originError

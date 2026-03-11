@@ -12,13 +12,35 @@ interface OtherBaby {
   name: string
 }
 
+interface EditEntry {
+  id: string
+  babyId: string
+  type: EntryType
+  occurredAt: string
+  amount: number | null
+  unit: Unit | null
+  notes: string | null
+  durationMinutes: number | null
+  diaperType?: DiaperType | null
+}
+
 interface AddEntryModalProps {
   babyId: string
   defaultHour: number
   otherBabies?: OtherBaby[]
+  editEntry?: EditEntry
   onClose: () => void
   onSave: (entry: {
     babyId: string
+    type: EntryType
+    occurredAt: string
+    amount?: number | null
+    unit?: Unit | null
+    notes?: string | null
+    durationMinutes?: number | null
+    diaperType?: DiaperType | null
+  }) => Promise<void>
+  onUpdate?: (id: string, entry: {
     type: EntryType
     occurredAt: string
     amount?: number | null
@@ -37,22 +59,32 @@ const ENTRY_TYPES: { type: EntryType; label: string; icon: React.ReactNode }[] =
   { type: 'MEDICINE', label: 'Medicine', icon: <Pill className="w-5 h-5" /> },
 ]
 
-export function AddEntryModal({ babyId, defaultHour, otherBabies = [], onClose, onSave }: AddEntryModalProps) {
-  const [selectedType, setSelectedType] = useState<EntryType | null>('FEEDING')
-  const [amount, setAmount] = useState('')
-  const [unit, setUnit] = useState<Unit>('ML')
-  const [diaperType, setDiaperType] = useState<DiaperType>('WET')
-  const [notes, setNotes] = useState('')
-  const [durationHours, setDurationHours] = useState(0)
-  const [durationMins, setDurationMins] = useState(30)
-  const [duplicateFor, setDuplicateFor] = useState<Set<string>>(new Set())
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+export function AddEntryModal({ babyId, defaultHour, otherBabies = [], editEntry, onClose, onSave, onUpdate }: AddEntryModalProps) {
+  const isEditing = !!editEntry
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+
+  function toLocalDatetimeString(isoString: string) {
+    const d = new Date(isoString)
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
 
   const now = new Date()
   now.setHours(defaultHour, 0, 0, 0)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const localDefault = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(defaultHour)}:00`
+  const localDefault = editEntry
+    ? toLocalDatetimeString(editEntry.occurredAt)
+    : `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(defaultHour)}:00`
+
+  const [selectedType, setSelectedType] = useState<EntryType | null>(editEntry?.type ?? 'FEEDING')
+  const [amount, setAmount] = useState(editEntry?.amount != null ? String(editEntry.amount) : '')
+  const [unit, setUnit] = useState<Unit>(editEntry?.unit ?? 'ML')
+  const [diaperType, setDiaperType] = useState<DiaperType>(editEntry?.diaperType ?? 'WET')
+  const [notes, setNotes] = useState(editEntry?.notes ?? '')
+  const [durationHours, setDurationHours] = useState(editEntry?.durationMinutes != null ? Math.floor(editEntry.durationMinutes / 60) : 0)
+  const [durationMins, setDurationMins] = useState(editEntry?.durationMinutes != null ? editEntry.durationMinutes % 60 : 30)
+  const [duplicateFor, setDuplicateFor] = useState<Set<string>>(new Set())
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [occurredAt, setOccurredAt] = useState(localDefault)
 
   const handleSave = async () => {
@@ -71,10 +103,14 @@ export function AddEntryModal({ babyId, defaultHour, otherBabies = [], onClose, 
       diaperType: selectedType === 'CHANGING' ? diaperType : null,
     }
     try {
-      await Promise.all([
-        onSave({ babyId, ...entryBase }),
-        ...[...duplicateFor].map((id) => onSave({ babyId: id, ...entryBase })),
-      ])
+      if (isEditing && onUpdate && editEntry) {
+        await onUpdate(editEntry.id, entryBase)
+      } else {
+        await Promise.all([
+          onSave({ babyId, ...entryBase }),
+          ...[...duplicateFor].map((id) => onSave({ babyId: id, ...entryBase })),
+        ])
+      }
       onClose()
     } catch {
       setError('Failed to save. Please try again.')
@@ -97,7 +133,7 @@ export function AddEntryModal({ babyId, defaultHour, otherBabies = [], onClose, 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add Entry</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{isEditing ? 'Edit Entry' : 'Add Entry'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
             <X className="w-5 h-5" />
           </button>
@@ -227,7 +263,7 @@ export function AddEntryModal({ babyId, defaultHour, otherBabies = [], onClose, 
           />
         </div>
 
-        {otherBabies.length > 0 && (
+        {!isEditing && otherBabies.length > 0 && (
           <div className="mb-4">
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Also add for</p>
             <div className="flex flex-wrap gap-2">
@@ -256,7 +292,7 @@ export function AddEntryModal({ babyId, defaultHour, otherBabies = [], onClose, 
           disabled={!selectedType || loading}
           className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50"
         >
-          {loading ? 'Saving...' : 'Save'}
+          {loading ? 'Saving...' : isEditing ? 'Save changes' : 'Save'}
         </button>
       </div>
     </div>
