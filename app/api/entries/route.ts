@@ -11,6 +11,7 @@ const CreateEntrySchema = z.object({
   amount: z.number().positive().optional().nullable(),
   unit: z.enum(['ML', 'OZ']).optional().nullable(),
   durationMinutes: z.number().int().min(1).max(1440).optional().nullable(),
+  diaperType: z.enum(['WET', 'DIRTY', 'BOTH']).optional().nullable(),
 })
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
@@ -127,6 +128,7 @@ export async function POST(request: NextRequest) {
         amount: validated.amount ?? null,
         unit: validated.unit ?? null,
         durationMinutes: validated.durationMinutes ?? null,
+        diaperType: validated.diaperType ?? null,
       },
     })
 

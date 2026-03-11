@@ -5,6 +5,7 @@ import { X, Milk, ShoppingBag, Moon, BedDouble, Pill } from 'lucide-react'
 
 type EntryType = 'FEEDING' | 'CHANGING' | 'NAP' | 'SLEEP' | 'MEDICINE'
 type Unit = 'ML' | 'OZ'
+type DiaperType = 'WET' | 'DIRTY' | 'BOTH'
 
 interface OtherBaby {
   id: string
@@ -24,6 +25,7 @@ interface AddEntryModalProps {
     unit?: Unit | null
     notes?: string | null
     durationMinutes?: number | null
+    diaperType?: DiaperType | null
   }) => Promise<void>
 }
 
@@ -39,6 +41,7 @@ export function AddEntryModal({ babyId, defaultHour, otherBabies = [], onClose, 
   const [selectedType, setSelectedType] = useState<EntryType | null>('FEEDING')
   const [amount, setAmount] = useState('')
   const [unit, setUnit] = useState<Unit>('ML')
+  const [diaperType, setDiaperType] = useState<DiaperType>('WET')
   const [notes, setNotes] = useState('')
   const [durationHours, setDurationHours] = useState(0)
   const [durationMins, setDurationMins] = useState(30)
@@ -65,6 +68,7 @@ export function AddEntryModal({ babyId, defaultHour, otherBabies = [], onClose, 
       unit: selectedType === 'FEEDING' ? unit : null,
       notes: notes || null,
       durationMinutes: isDuration && totalDuration > 0 ? totalDuration : null,
+      diaperType: selectedType === 'CHANGING' ? diaperType : null,
     }
     try {
       await Promise.all([
@@ -145,6 +149,27 @@ export function AddEntryModal({ babyId, defaultHour, otherBabies = [], onClose, 
                 <option value="ML">ml</option>
                 <option value="OZ">oz</option>
               </select>
+            </div>
+          </div>
+        )}
+
+        {selectedType === 'CHANGING' && (
+          <div className="mb-4">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</p>
+            <div className="flex gap-3">
+              {(['WET', 'DIRTY', 'BOTH'] as DiaperType[]).map((option) => (
+                <label key={option} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="diaperType"
+                    value={option}
+                    checked={diaperType === option}
+                    onChange={() => setDiaperType(option)}
+                    className="accent-blue-600"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">{option.charAt(0) + option.slice(1).toLowerCase()}</span>
+                </label>
+              ))}
             </div>
           </div>
         )}

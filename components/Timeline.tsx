@@ -5,6 +5,7 @@ import { Milk, ShoppingBag, Moon, BedDouble, Pill, Plus } from 'lucide-react'
 
 type EntryType = 'FEEDING' | 'CHANGING' | 'NAP' | 'SLEEP' | 'MEDICINE'
 type Unit = 'ML' | 'OZ'
+type DiaperType = 'WET' | 'DIRTY' | 'BOTH'
 
 interface Entry {
   id: string
@@ -14,6 +15,7 @@ interface Entry {
   unit: Unit | null
   notes: string | null
   durationMinutes: number | null
+  diaperType?: DiaperType | null
 }
 
 interface TimelineProps {
@@ -73,6 +75,9 @@ function formatEntryPill(entry: Entry): string {
   const label = ENTRY_LABELS[entry.type]
   if (entry.type === 'FEEDING' && entry.amount != null) {
     return `${label}: ${entry.amount} ${entry.unit}`
+  }
+  if (entry.type === 'CHANGING' && entry.diaperType) {
+    return `${label}: ${entry.diaperType.charAt(0) + entry.diaperType.slice(1).toLowerCase()}`
   }
   return label
 }

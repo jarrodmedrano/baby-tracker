@@ -79,15 +79,16 @@ model BabyUser {
 }
 
 model Entry {
-  id              String    @id @default(cuid())
+  id              String      @id @default(cuid())
   babyId          String
   type            EntryType
-  occurredAt      DateTime  @default(now())
+  occurredAt      DateTime    @default(now())
   notes           String?
   amount          Float?
   unit            Unit?
   durationMinutes Int?
-  baby            Baby      @relation(fields: [babyId], references: [id], onDelete: Cascade)
+  diaperType      DiaperType?
+  baby            Baby        @relation(fields: [babyId], references: [id], onDelete: Cascade)
 }
 
 model SharedAccess {
@@ -113,6 +114,12 @@ enum EntryType {
 enum Unit {
   ML
   OZ
+}
+
+enum DiaperType {
+  WET
+  DIRTY
+  BOTH
 }
 
 enum Role {

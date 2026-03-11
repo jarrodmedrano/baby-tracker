@@ -24,6 +24,7 @@ interface Entry {
   unit: 'ML' | 'OZ' | null
   notes: string | null
   durationMinutes: number | null
+  diaperType?: 'WET' | 'DIRTY' | 'BOTH' | null
 }
 
 const ENTRY_LABELS: Record<Entry['type'], string> = {
@@ -77,6 +78,7 @@ export function DashboardClient({ babies }: DashboardClientProps) {
     unit?: 'ML' | 'OZ' | null
     notes?: string | null
     durationMinutes?: number | null
+    diaperType?: 'WET' | 'DIRTY' | 'BOTH' | null
   }) => {
     const res = await fetch('/api/entries', {
       method: 'POST',
